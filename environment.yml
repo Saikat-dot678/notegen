@@ -1,0 +1,21 @@
+name: notegen
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytesseract
+  - tesserocr
+  - poppler
+  - pymupdf
+  - pip:
+    - fastapi
+    - uvicorn
+    - pydantic
+    - pdfminer.six
+    - transformers
+    - sentence-transformers
+    - faiss-cpu
+    - openai
+    - reportlab
+    - graphviz

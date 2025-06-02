@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Note Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8;
+           display: flex; align-items: center; justify-content: center;
+           height: 100vh; }
+    .container { background: #fff; border-radius:8px; padding:2rem;
+        max-width:480px; width:100%; box-shadow:0 8px 20px rgba(0,0,0,0.05); }
+    h1 { text-align:center; margin-bottom:1.5rem; color:#1a202c; }
+    form { display:flex; flex-direction:column; gap:1.25rem; }
+    label { font-weight:600; color:#4a5568; }
+    input[type="file"] { padding:.5rem; border:1px solid #cbd5e0;
+        border-radius:4px; cursor:pointer; }
+    input[type="file"]::-webkit-file-upload-button {
+      background:#edf2f7; border:none; padding:.5rem 1rem; border-radius:4px;
+      cursor:pointer; transition:background .2s; }
+    input[type="file"]::-webkit-file-upload-button:hover {
+      background:#e2e8f0; }
+    button { background:#3182ce; color:#fff; border:none;
+      padding:.75rem 1.5rem; font-size:1rem; border-radius:4px;
+      font-weight:600; cursor:pointer; transition:background .2s; }
+    button:hover { background:#2b6cb0; }
+    @media(max-width:500px){ .container{padding:1.5rem;} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI Note Generator</h1>
+    <form action="/generate" method="post" enctype="multipart/form-data">
+      <label>Select transcript (TXT or PDF):</label>
+      <input type="file" name="file" accept=".txt,.pdf" required/>
+      <button type="submit">Generate Notes</button>
+    </form>
+  </div>
+</body>
+</html>
