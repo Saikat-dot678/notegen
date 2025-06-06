@@ -1,6 +1,6 @@
 import os
 import traceback
-from fastapi import FastAPI, Request, UploadFile, File, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -8,8 +8,7 @@ from fastapi.templating import Jinja2Templates
 from ingestion import clean_transcript, extract_pdf_text
 from preprocess import normalize_text, chunk_text
 from generate import generate_chunk_notes
-from diagrams import gen_diagram
-from assemble import build_pdf
+from assemble import build_pdf  # must support new format
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -20,22 +19,33 @@ async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/generate")
-async def generate(request: Request, file: UploadFile = File(...)):
+async def generate_notes(
+    request: Request,
+    file: UploadFile = File(None),
+    raw_text: str = Form(None)
+):
     try:
-        # 1. Read & extract
-        suffix = os.path.splitext(file.filename)[1].lower()
-        data = await file.read()
+        # 1. Read input
+        if file:
+            suffix = os.path.splitext(file.filename)[1].lower()
+            data = await file.read()
 
-        if suffix == ".txt":
-            raw = data.decode("utf-8", errors="ignore")
-        elif suffix == ".pdf":
-            tmp = "tmp_upload.pdf"
-            with open(tmp, "wb") as f:
-                f.write(data)
-            raw = extract_pdf_text(tmp)
-            os.remove(tmp)
+            if suffix == ".txt":
+                raw = data.decode("utf-8", errors="ignore")
+            elif suffix == ".pdf":
+                tmp = "tmp_upload.pdf"
+                with open(tmp, "wb") as f:
+                    f.write(data)
+                raw = extract_pdf_text(tmp)
+                os.remove(tmp)
+            elif suffix in [".text", ".md"]:
+                raw = data.decode("utf-8", errors="ignore")
+            else:
+                raise HTTPException(400, "Only .txt, .text or .pdf files are allowed.")
+        elif raw_text:
+            raw = raw_text
         else:
-            raise HTTPException(400, "Only .txt or .pdf files are allowed.")
+            raise HTTPException(400, "No input text or file provided.")
 
         # 2. Clean and chunk
         cleaned = clean_transcript(raw)
@@ -43,43 +53,18 @@ async def generate(request: Request, file: UploadFile = File(...)):
         chunks = chunk_text(norm)
 
         if not chunks:
-            raise HTTPException(422, "No meaningful content found in the uploaded file.")
+            raise HTTPException(422, "No meaningful content found in the input.")
 
-        # 3. Generate notes per chunk
+        # 3. Generate freeform notes per chunk
         notes = []
-        seen = set()
 
         for idx, chunk in enumerate(chunks):
             print(f"🧠 Generating notes for chunk {idx + 1}/{len(chunks)}")
+            section = generate_chunk_notes(chunk)  # returns dict with title + content
+            notes.append(section)
 
-            # Truncate overly long chunks if needed (safe side)
-            if len(chunk) > 4000:
-                chunk = chunk[:4000]
-
-            sec = generate_chunk_notes(chunk)
-
-            # Deduplicate bullets
-            unique = []
-            for b in sec.get("bullets", []):
-                key = b.lower()
-                if key not in seen:
-                    unique.append(b)
-                    seen.add(key)
-            sec["bullets"] = unique
-
-            # Generate diagram if prompt is present
-            dp = sec.get("diagram_prompt")
-            if dp:
-                try:
-                    path = gen_diagram(dp)
-                    if path:
-                        sec["diagram_path"] = path
-                except Exception as e:
-                    print(f"⚠️ Failed to generate diagram: {e}")
-
-            notes.append(sec)
-
-        # 4. Build and return PDF
+        # 4. Build final PDF (expects notes = [{title: ..., content: ...}, ...])
+        print(notes)
         out = "notes_output.pdf"
         build_pdf(notes, out)
 
