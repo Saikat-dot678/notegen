@@ -1,4 +1,4 @@
-# 📝 NoteGen: AI-Powered Notes Generator
+## 📝 NoteGen: AI-Powered Notes Generator
 
 **NoteGen** is a general-purpose tool that takes structured or semi-structured input (like lecture notes, slides, or outlines) and converts it into professionally formatted, concise study notes in PDF format. It's perfect for students, educators, and self-learners who want fast, clean, and customizable learning materials.
 
